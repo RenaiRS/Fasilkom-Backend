@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"redesign_backend/cache"
     "redesign_backend/database"
     "redesign_backend/models"
     "redesign_backend/utils"
@@ -10,10 +11,19 @@ import (
     "github.com/gofiber/fiber/v2"
 )
 
+// controllers/kemahasiswaan_kerjasama.go
 func GetKemahasiswaanKerjasama(c *fiber.Ctx) error {
-    var data []models.KemahasiswaanKerjasama
     limit := c.Query("limit")
+    cacheKey := "kemahasiswaan_all"
 
+    if cached, found := cache.GetKemahasiswaanKerjasamaCache(cacheKey); found {
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "data":  cached,
+            "cache": true,
+        })
+    }
+
+    var data []models.KemahasiswaanKerjasama
     query := database.DB.Model(&models.KemahasiswaanKerjasama{}).Order("tanggal DESC")
     if limit != "" {
         if l, err := strconv.Atoi(limit); err == nil {
@@ -27,8 +37,11 @@ func GetKemahasiswaanKerjasama(c *fiber.Ctx) error {
         })
     }
 
+    cache.SetKemahasiswaanKerjasamaCache(cacheKey, data)
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "data": data,
+        "data":  data,
+        "cache": false,
     })
 }
 

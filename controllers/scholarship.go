@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"redesign_backend/cache"
     "redesign_backend/database"
     "redesign_backend/models"
     "redesign_backend/utils"
@@ -10,10 +11,19 @@ import (
     "github.com/gofiber/fiber/v2"
 )
 
+// controllers/scholarship.go
 func GetScholarship(c *fiber.Ctx) error {
-    var data []models.Scholarship
     limit := c.Query("limit")
+    cacheKey := "scholarship_all"
 
+    if cached, found := cache.GetScholarshipCache(cacheKey); found {
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "data":  cached,
+            "cache": true,
+        })
+    }
+
+    var data []models.Scholarship
     query := database.DB.Model(&models.Scholarship{}).Order("tanggal DESC")
     if limit != "" {
         if l, err := strconv.Atoi(limit); err == nil {
@@ -27,8 +37,11 @@ func GetScholarship(c *fiber.Ctx) error {
         })
     }
 
+    cache.SetScholarshipCache(cacheKey, data)
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "data": data,
+        "data":  data,
+        "cache": false,
     })
 }
 

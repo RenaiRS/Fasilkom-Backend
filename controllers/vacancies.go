@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"redesign_backend/cache"
     "redesign_backend/database"
     "redesign_backend/models"
     "redesign_backend/utils"
@@ -11,9 +12,17 @@ import (
 )
 
 func GetVacancies(c *fiber.Ctx) error {
-    var data []models.Vacancies
     limit := c.Query("limit")
+    cacheKey := "vacancies_all"
 
+    if cached, found := cache.GetVacanciesCache(cacheKey); found {
+        return c.Status(fiber.StatusOK).JSON(fiber.Map{
+            "data":  cached,
+            "cache": true,
+        })
+    }
+
+    var data []models.Vacancies
     query := database.DB.Model(&models.Vacancies{}).Order("tanggal DESC")
     if limit != "" {
         if l, err := strconv.Atoi(limit); err == nil {
@@ -27,15 +36,17 @@ func GetVacancies(c *fiber.Ctx) error {
         })
     }
 
+    cache.SetVacanciesCache(cacheKey, data)
+
     return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "data": data,
+        "data":  data,
+        "cache": false,
     })
 }
 
 func CreateVacancies(c *fiber.Ctx) error {
 	var data models.Vacancies
 
-	// Ambil admin dari cookie token
 	cookieToken := c.Cookies("admin_token")
 	var admin models.Admin
 	if err := database.DB.Where("token = ? AND token_exp >= ?", cookieToken, time.Now()).First(&admin).Error; err != nil {
