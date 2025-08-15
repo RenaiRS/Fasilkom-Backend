@@ -43,7 +43,7 @@ func SaveFile(c *fiber.Ctx, fieldName string, isCover bool) (string, error) {
 		return "", err
 	}
 
-	fullURL := fmt.Sprintf("%s%s", publicPath, newFilename)
+	fullURL := fmt.Sprintf("%s%s%s", c.BaseURL(), publicPath, newFilename)
 
 	return fullURL, nil
 }
